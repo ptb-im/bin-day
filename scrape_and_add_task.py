@@ -95,29 +95,22 @@ def scrape_bin_info():
     return results
 
 
-def get_default_project_id(access_token):
-    resp = requests.get(
-        "https://api.ticktick.com/open/v1/project",
-        headers={"Authorization": f"Bearer {access_token}"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    projects = resp.json()
-    if projects:
-        return projects[0]["id"]
-    raise RuntimeError("No TickTick projects found - set TICKTICK_PROJECT_ID manually")
-
-
 def create_ticktick_task(access_token, project_id, title, collection_date):
-    due_date_str = collection_date.strftime("%Y-%m-%dT09:00:00+0000")
+    # Fire the reminder the evening before collection, at 22:00 (10pm),
+    # rather than on the collection day itself.
+    notify_date = collection_date - timedelta(days=1)
+    due_date_str = notify_date.strftime("%Y-%m-%dT22:00:00+0000")
+
     payload = {
         "title": title,
-        "projectId": project_id,
         "dueDate": due_date_str,
         "isAllDay": False,
         "timeZone": "Europe/London",
-        "reminders": ["TRIGGER:PT0S"],  # remind at the due time (9am)
+        "reminders": ["TRIGGER:PT0S"],  # remind exactly at the due time (22:00)
     }
+    if project_id:
+        payload["projectId"] = project_id  # omit entirely to default to your Inbox
+
     resp = requests.post(
         "https://api.ticktick.com/open/v1/task",
         headers={"Authorization": f"Bearer {access_token}"},
@@ -141,11 +134,10 @@ def main():
         print(f"{collection_date.strftime('%A %d %B %Y')}: {', '.join(names)}")
 
     access_token = TICKTICK_ACCESS_TOKEN
-    project_id = TICKTICK_PROJECT_ID or get_default_project_id(access_token)
 
     for collection_date, names in by_date.items():
-        title = "Bin day: " + ", ".join(names)
-        task = create_ticktick_task(access_token, project_id, title, collection_date)
+        title = f"Bin day ({collection_date.strftime('%a %d %b')}): " + ", ".join(names)
+        task = create_ticktick_task(access_token, TICKTICK_PROJECT_ID, title, collection_date)
         print(f"Created TickTick task: {task.get('id')} ({title})")
 
 
