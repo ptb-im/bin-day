@@ -95,18 +95,40 @@ def scrape_bin_info():
     return results
 
 
+def short_bin_name(full_name):
+    """Turn e.g. 'Black/green bin - non-recyclable waste' into 'Black/green bin'."""
+    name = full_name.split(" - ")[0].strip()
+    if "bin" not in name.lower():
+        name = f"{name} bin"
+    return name
+
+
+def join_bin_names(names):
+    if len(names) == 1:
+        return names[0]
+    return " and ".join(names)  # max 2 bins per week for this address
+
+
 def create_ticktick_task(access_token, project_id, title, collection_date):
-    # Fire the reminder the evening before collection, at 22:00 (10pm),
-    # rather than on the collection day itself.
+    # Fire the reminder the evening before collection, at 22:00 (10pm) UK time.
+    # Built with zoneinfo so it correctly accounts for BST/GMT - a naive
+    # "+0000" offset was being read as literal UTC, which showed up an hour
+    # off (11pm) during British Summer Time.
+    from zoneinfo import ZoneInfo
+
     notify_date = collection_date - timedelta(days=1)
-    due_date_str = notify_date.strftime("%Y-%m-%dT22:00:00+0000")
+    local_dt = datetime(notify_date.year, notify_date.month, notify_date.day, 22, 0, 0,
+                         tzinfo=ZoneInfo("Europe/London"))
+    utc_dt = local_dt.astimezone(ZoneInfo("UTC"))
+    due_date_str = utc_dt.strftime("%Y-%m-%dT%H:%M:%S+0000")
 
     payload = {
         "title": title,
         "dueDate": due_date_str,
         "isAllDay": False,
         "timeZone": "Europe/London",
-        "reminders": ["TRIGGER:PT0S"],  # remind exactly at the due time (22:00)
+        "reminders": ["TRIGGER:PT0S"],  # remind exactly at the due time (22:00 local)
+        "priority": 5,  # 0=None, 1=Low, 3=Medium, 5=High
     }
     if project_id:
         payload["projectId"] = project_id  # omit entirely to default to your Inbox
@@ -136,7 +158,8 @@ def main():
     access_token = TICKTICK_ACCESS_TOKEN
 
     for collection_date, names in by_date.items():
-        title = f"Bin day ({collection_date.strftime('%a %d %b')}): " + ", ".join(names)
+        short_names = [short_bin_name(n) for n in names]
+        title = f"Bin day - {join_bin_names(short_names)}"
         task = create_ticktick_task(access_token, TICKTICK_PROJECT_ID, title, collection_date)
         print(f"Created TickTick task: {task.get('id')} ({title})")
 
