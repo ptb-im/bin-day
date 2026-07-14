@@ -124,6 +124,7 @@ def create_ticktick_task(access_token, project_id, title, collection_date):
 
     payload = {
         "title": title,
+        "startDate": due_date_str,  # reminders are anchored to startDate, not dueDate
         "dueDate": due_date_str,
         "isAllDay": False,
         "timeZone": "Europe/London",
