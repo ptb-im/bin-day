@@ -2,11 +2,13 @@ name: Weekly bin reminder
 
 on:
   schedule:
-    # 21:00 UK time. GitHub cron is always UTC: 20:00 UTC = 9pm BST (summer),
-    # 21:00 UTC = 9pm GMT (winter). Set for BST (current, summer) - shift by
-    # 1 hour ("0 21 * * 1") once clocks go back in late October if you want
-    # it to stay at exactly 9pm year-round.
-    - cron: "0 20 * * 1"
+    # 09:00 UK time. GitHub cron is always UTC: 08:00 UTC = 9am BST (summer),
+    # 09:00 UTC = 9am GMT (winter). Set for BST (current, summer) - shift to
+    # "0 9 * * 1" once clocks go back in late October if you want it to stay
+    # at exactly 9am year-round. Running in the morning (rather than close to
+    # the 10pm reminder time) avoids TickTick potentially treating a
+    # near-immediate due time as ambiguous.
+    - cron: "0 8 * * 1"
   workflow_dispatch: {}   # lets you manually trigger a run from the Actions tab to test
 
 jobs:

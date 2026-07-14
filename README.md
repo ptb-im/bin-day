@@ -8,10 +8,13 @@ collected that week.
 1. `scrape_and_add_task.py` fetches the page, finds "This week's collection"
    and the featured bin type(s), then cross-references the schedule table to
    work out which weekday (e.g. Tuesday) each bin type is collected on.
-2. It uses a TickTick access token to create a task titled e.g.
-   "Bin day: Black/green bin - non-recyclable waste" due on that date, with
-   a reminder.
-3. GitHub Actions runs this automatically every Monday at 7am (UK time-ish).
+2. It creates a TickTick task titled e.g. "Bin day (Tue 14 Jul): Black/green
+   bin - non-recyclable waste", due the evening before collection at 10pm,
+   with a reminder that fires right then. It goes into your TickTick Inbox by
+   default (see `TICKTICK_PROJECT_ID` below if you'd rather it land in a
+   specific list).
+3. GitHub Actions runs this automatically every Monday at 9am (UK time-ish),
+   well clear of the 10pm reminder time itself.
 
 ## One-time setup
 
@@ -54,9 +57,10 @@ git push -u origin main
 In your GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**.
 Add:
 - `TICKTICK_ACCESS_TOKEN`
-- `TICKTICK_PROJECT_ID` *(optional — if you want the task to land in a specific
-  TickTick list rather than your default list; get an ID by calling
-  `GET https://api.ticktick.com/open/v1/project` with your access token)*
+- `TICKTICK_PROJECT_ID` *(optional — leave unset and it goes to your Inbox.
+  Only set this if you want the task to land in a specific TickTick list
+  instead; get an ID by calling `GET https://api.ticktick.com/open/v1/project`
+  with your access token)*
 
 ### 5. Test it
 Go to the **Actions** tab in your repo → "Weekly bin reminder" → **Run workflow**
